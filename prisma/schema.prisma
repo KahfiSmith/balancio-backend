@@ -1,0 +1,317 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  firstName String
+  lastName  String
+  email     String   @unique
+  password  String
+  avatar    String?
+
+  isEmailVerified        Boolean @default(false)
+  emailVerificationToken String?
+  passwordResetToken     String?
+  passwordResetExpires   DateTime?
+
+  role String @default("user") // "user" or "admin"
+
+  // User preferences
+  preferences UserPreferences?
+
+  lastLogin DateTime?
+  isActive  Boolean  @default(true)
+
+  // Relations
+  categories    Category[]
+  expenses      Expense[]
+  incomes       Income[]
+  budgets       Budget[]
+  goals         Goal[]
+  notifications Notification[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model UserPreferences {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @unique @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  currency String @default("USD")
+  timezone String @default("UTC")
+
+  // Notification preferences
+  notifications UserNotificationPreferences?
+
+  // Privacy preferences
+  privacy UserPrivacyPreferences?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("user_preferences")
+}
+
+model UserNotificationPreferences {
+  id            String @id @default(auto()) @map("_id") @db.ObjectId
+  preferencesId String @unique @db.ObjectId
+  preferences   UserPreferences @relation(fields: [preferencesId], references: [id], onDelete: Cascade)
+
+  email          Boolean @default(true)
+  push           Boolean @default(true)
+  budgetAlerts   Boolean @default(true)
+  goalMilestones Boolean @default(true)
+
+  @@map("user_notification_preferences")
+}
+
+model UserPrivacyPreferences {
+  id            String @id @default(auto()) @map("_id") @db.ObjectId
+  preferencesId String @unique @db.ObjectId
+  preferences   UserPreferences @relation(fields: [preferencesId], references: [id], onDelete: Cascade)
+
+  profileVisible Boolean @default(false)
+  dataSharing    Boolean @default(false)
+
+  @@map("user_privacy_preferences")
+}
+
+model Category {
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String?
+  icon        String
+  color       String
+  type        String  // "expense" or "income"
+  isDefault   Boolean @default(false)
+  isActive    Boolean @default(true)
+
+  userId String? @db.ObjectId
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Relations
+  expenses Expense[]
+  incomes  Income[]
+  budgets  Budget[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([name, userId, type])
+  @@map("categories")
+}
+
+model Expense {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String    @db.ObjectId
+  categoryId  String    @db.ObjectId
+  title       String
+  description String?
+  amount      Float
+  date        DateTime  @default(now())
+  receipts    String[]
+  tags        String[]
+  location    String?
+  
+  paymentMethod String @default("card") // "cash", "card", "bank_transfer", "digital_wallet", "other"
+
+  isRecurring Boolean @default(false)
+  recurrence  ExpenseRecurrence?
+
+  budgetId String? @db.ObjectId
+  budget   Budget? @relation(fields: [budgetId], references: [id])
+
+  isActive Boolean @default(true)
+
+  // Relations
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("expenses")
+}
+
+model ExpenseRecurrence {
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
+  expenseId String @unique @db.ObjectId
+  expense   Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+
+  type     String // "daily", "weekly", "monthly", "yearly"
+  interval Int    @default(1)
+  endDate  DateTime?
+  nextDate DateTime?
+
+  @@map("expense_recurrences")
+}
+
+model Income {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String    @db.ObjectId
+  categoryId  String    @db.ObjectId
+  title       String
+  description String?
+  amount      Float
+  date        DateTime  @default(now())
+  source      String    @default("other") // "salary", "freelance", "investment", "business", "gift", "other"
+  tags        String[]
+
+  isRecurring Boolean @default(false)
+  recurrence  IncomeRecurrence?
+
+  isActive Boolean @default(true)
+
+  // Relations
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("incomes")
+}
+
+model IncomeRecurrence {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  incomeId String @unique @db.ObjectId
+  income   Income @relation(fields: [incomeId], references: [id], onDelete: Cascade)
+
+  type     String // "daily", "weekly", "monthly", "yearly"
+  interval Int    @default(1)
+  endDate  DateTime?
+  nextDate DateTime?
+
+  @@map("income_recurrences")
+}
+
+model Budget {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String    @db.ObjectId
+  categoryId  String?   @db.ObjectId
+  name        String
+  description String?
+  amount      Float
+  spent       Float     @default(0)
+  period      String    // "monthly", "quarterly", "yearly"
+  startDate   DateTime
+  endDate     DateTime
+
+  alertThreshold Float @default(80) // Percentage
+
+  isActive Boolean @default(true)
+
+  // Notification settings
+  notifications BudgetNotifications?
+
+  // Relations
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id])
+  expenses Expense[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("budgets")
+}
+
+model BudgetNotifications {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  budgetId String @unique @db.ObjectId
+  budget   Budget @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+
+  enabled    Boolean @default(true)
+  thresholds Float[] @default([50, 75, 90, 100])
+
+  @@map("budget_notifications")
+}
+
+model Goal {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String    @db.ObjectId
+  name          String
+  description   String?
+  targetAmount  Float
+  currentAmount Float     @default(0)
+  targetDate    DateTime
+  status        String    @default("active") // "active", "completed", "paused", "cancelled"
+  category      String    @default("other") // "emergency_fund", "vacation", "house", "car", "education", "retirement", "other"
+
+  milestones    GoalMilestone[]
+  contributions GoalContribution[]
+
+  isActive Boolean @default(true)
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("goals")
+}
+
+model GoalMilestone {
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  goalId     String    @db.ObjectId
+  amount     Float
+  note       String?
+  achievedAt DateTime?
+
+  // Relations
+  goal Goal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@map("goal_milestones")
+}
+
+model GoalContribution {
+  id     String   @id @default(auto()) @map("_id") @db.ObjectId
+  goalId String   @db.ObjectId
+  amount Float
+  date   DateTime @default(now())
+  note   String?
+
+  // Relations
+  goal Goal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@map("goal_contributions")
+}
+
+model Notification {
+  id      String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId  String  @db.ObjectId
+  type    String  // "budget_alert", "goal_milestone", "system", "reminder"
+  title   String
+  message String
+  data    Json?   // Additional data as JSON
+
+  isRead   Boolean @default(false)
+  priority String  @default("medium") // "low", "medium", "high"
+
+  expiresAt DateTime? @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("notifications")
+}
