@@ -1,15 +1,19 @@
-import { Router } from 'express';
+import { Router, type Router as ExpressRouter } from 'express';
+import { authenticate } from '@/middleware/auth';
+import * as UserController from '@/controllers/userController';
+import { validate } from '@/middleware/validate';
+import { updatePasswordSchema, updatePreferencesSchema, updateProfileSchema } from '@/validators/userSchemas';
 
-const router = Router();
+const router: ExpressRouter = Router();
 
-// TODO: Implement user routes
-// GET /api/users/profile
-// PUT /api/users/profile
-// PUT /api/users/password
-// PUT /api/users/preferences
-// DELETE /api/users/account
+router.get('/profile', authenticate, UserController.getProfile);
+router.put('/profile', authenticate, validate(updateProfileSchema), UserController.updateProfile);
+router.put('/password', authenticate, validate(updatePasswordSchema), UserController.updatePassword);
+router.put('/preferences', authenticate, validate(updatePreferencesSchema), UserController.updatePreferences);
+router.delete('/account', authenticate, UserController.deleteAccount);
 
-router.get('/health', (req, res) => {
+// Health check
+router.get('/health', (_req, res) => {
   res.json({ message: 'User routes working' });
 });
 

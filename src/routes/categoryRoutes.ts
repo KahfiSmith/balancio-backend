@@ -1,16 +1,19 @@
-import { Router } from 'express';
+import { Router, type Router as ExpressRouter } from 'express';
+import { authenticate } from '@/middleware/auth';
+import * as Category from '@/controllers/categoryController';
+import { validate } from '@/middleware/validate';
+import { createCategorySchema, updateCategorySchema } from '@/validators/categorySchemas';
 
-const router = Router();
+const router: ExpressRouter = Router();
 
-// TODO: Implement category routes
-// GET /api/categories
-// GET /api/categories/:id
-// POST /api/categories
-// PUT /api/categories/:id
-// DELETE /api/categories/:id
-// GET /api/categories/default
+router.get('/', authenticate, Category.listAll);
+router.get('/default', authenticate, Category.listDefault);
+router.get('/:id', authenticate, Category.getById);
+router.post('/', authenticate, validate(createCategorySchema), Category.create);
+router.put('/:id', authenticate, validate(updateCategorySchema), Category.update);
+router.delete('/:id', authenticate, Category.remove);
 
-router.get('/health', (req, res) => {
+router.get('/health', (_req, res) => {
   res.json({ message: 'Category routes working' });
 });
 

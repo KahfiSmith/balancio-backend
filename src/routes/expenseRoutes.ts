@@ -1,17 +1,18 @@
-import { Router } from 'express';
+import { Router, type Router as ExpressRouter } from 'express';
+import { authenticate } from '@/middleware/auth';
+import * as Expense from '@/controllers/expenseController';
+import { validate } from '@/middleware/validate';
+import { createExpenseSchema, expenseQuerySchema, updateExpenseSchema } from '@/validators/expenseSchemas';
 
-const router = Router();
+const router: ExpressRouter = Router();
 
-// TODO: Implement expense routes
-// GET /api/expenses
-// GET /api/expenses/:id
-// POST /api/expenses
-// PUT /api/expenses/:id
-// DELETE /api/expenses/:id
-// GET /api/expenses/recurring
-// POST /api/expenses/bulk
+router.get('/', authenticate, validate(expenseQuerySchema, 'query'), Expense.list);
+router.get('/:id', authenticate, Expense.getById);
+router.post('/', authenticate, validate(createExpenseSchema), Expense.create);
+router.put('/:id', authenticate, validate(updateExpenseSchema), Expense.update);
+router.delete('/:id', authenticate, Expense.remove);
 
-router.get('/health', (req, res) => {
+router.get('/health', (_req, res) => {
   res.json({ message: 'Expense routes working' });
 });
 

@@ -1,6 +1,6 @@
-import { Router } from 'express';
+import { Router, type Router as ExpressRouter } from 'express';
 
-const router = Router();
+const router: ExpressRouter = Router();
 
 // TODO: Implement notification routes
 // GET /api/notifications

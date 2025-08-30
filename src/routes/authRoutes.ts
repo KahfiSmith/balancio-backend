@@ -1,17 +1,17 @@
-import { Router } from 'express';
+import { Router, type Router as ExpressRouter } from 'express';
+import * as Auth from '@/controllers/authController';
+import { validate } from '@/middleware/validate';
+import { loginSchema, refreshSchema, registerSchema } from '@/validators/authSchemas';
 
-const router = Router();
+const router: ExpressRouter = Router();
 
-// TODO: Implement auth routes
-// POST /api/auth/register
-// POST /api/auth/login
-// POST /api/auth/refresh
-// POST /api/auth/logout
-// POST /api/auth/forgot-password
-// POST /api/auth/reset-password
-// POST /api/auth/verify-email
+router.post('/register', validate(registerSchema), Auth.register);
+router.post('/login', validate(loginSchema), Auth.login);
+router.post('/refresh', validate(refreshSchema), Auth.refresh);
+router.post('/logout', Auth.logout);
 
-router.get('/health', (req, res) => {
+// Stubs for upcoming features
+router.get('/health', (_req, res) => {
   res.json({ message: 'Auth routes working' });
 });
 
