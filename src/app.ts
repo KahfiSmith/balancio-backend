@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { type Express } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -22,7 +22,8 @@ import notificationRoutes from '@/routes/notificationRoutes';
 import analyticsRoutes from '@/routes/analyticsRoutes';
 import uploadRoutes from '@/routes/uploadRoutes';
 
-const app = express();
+// Explicitly type the Express app to avoid TS2742 on export
+const app: Express = express();
 
 // Rate limiting
 const limiter = rateLimit({

@@ -1,12 +1,11 @@
-import { 
-  User, 
-  UserPreferences, 
-  Category, 
-  Expense, 
-  Income, 
-  Budget, 
-  Goal, 
-  Notification 
+import {
+  Budget,
+  Category,
+  Expense,
+  Goal,
+  Income,
+  User,
+  UserPreferences
 } from '@prisma/client';
 
 // Extended types with relations
