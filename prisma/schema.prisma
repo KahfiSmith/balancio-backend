@@ -10,6 +10,72 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Enums for stronger typing
+enum CategoryType {
+  expense
+  income
+}
+
+enum PaymentMethod {
+  cash
+  card
+  bank_transfer
+  digital_wallet
+  other
+}
+
+enum RecurrenceType {
+  daily
+  weekly
+  monthly
+  yearly
+}
+
+enum IncomeSource {
+  salary
+  freelance
+  investment
+  business
+  gift
+  other
+}
+
+enum BudgetPeriod {
+  monthly
+  quarterly
+  yearly
+}
+
+enum GoalStatus {
+  active
+  completed
+  paused
+  cancelled
+}
+
+enum GoalCategory {
+  emergency_fund
+  vacation
+  house
+  car
+  education
+  retirement
+  other
+}
+
+enum NotificationType {
+  budget_alert
+  goal_milestone
+  system
+  reminder
+}
+
+enum NotificationPriority {
+  low
+  medium
+  high
+}
+
 model User {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   firstName String
@@ -95,7 +161,7 @@ model Category {
   description String?
   icon        String
   color       String
-  type        String  // "expense" or "income"
+  type        CategoryType  // "expense" or "income"
   isDefault   Boolean @default(false)
   isActive    Boolean @default(true)
 
@@ -126,7 +192,7 @@ model Expense {
   tags        String[]
   location    String?
   
-  paymentMethod String @default("card") // "cash", "card", "bank_transfer", "digital_wallet", "other"
+  paymentMethod PaymentMethod @default(card) // "cash", "card", "bank_transfer", "digital_wallet", "other"
 
   isRecurring Boolean @default(false)
   recurrence  ExpenseRecurrence?
@@ -151,7 +217,7 @@ model ExpenseRecurrence {
   expenseId String @unique @db.ObjectId
   expense   Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
 
-  type     String // "daily", "weekly", "monthly", "yearly"
+  type     RecurrenceType // "daily", "weekly", "monthly", "yearly"
   interval Int    @default(1)
   endDate  DateTime?
   nextDate DateTime?
@@ -167,7 +233,7 @@ model Income {
   description String?
   amount      Float
   date        DateTime  @default(now())
-  source      String    @default("other") // "salary", "freelance", "investment", "business", "gift", "other"
+  source      IncomeSource    @default(other) // "salary", "freelance", "investment", "business", "gift", "other"
   tags        String[]
 
   isRecurring Boolean @default(false)
@@ -190,7 +256,7 @@ model IncomeRecurrence {
   incomeId String @unique @db.ObjectId
   income   Income @relation(fields: [incomeId], references: [id], onDelete: Cascade)
 
-  type     String // "daily", "weekly", "monthly", "yearly"
+  type     RecurrenceType // "daily", "weekly", "monthly", "yearly"
   interval Int    @default(1)
   endDate  DateTime?
   nextDate DateTime?
@@ -206,7 +272,7 @@ model Budget {
   description String?
   amount      Float
   spent       Float     @default(0)
-  period      String    // "monthly", "quarterly", "yearly"
+  period      BudgetPeriod    // "monthly", "quarterly", "yearly"
   startDate   DateTime
   endDate     DateTime
 
@@ -247,8 +313,8 @@ model Goal {
   targetAmount  Float
   currentAmount Float     @default(0)
   targetDate    DateTime
-  status        String    @default("active") // "active", "completed", "paused", "cancelled"
-  category      String    @default("other") // "emergency_fund", "vacation", "house", "car", "education", "retirement", "other"
+  status        GoalStatus    @default(active) // "active", "completed", "paused", "cancelled"
+  category      GoalCategory  @default(other) // "emergency_fund", "vacation", "house", "car", "education", "retirement", "other"
 
   milestones    GoalMilestone[]
   contributions GoalContribution[]
@@ -297,13 +363,13 @@ model GoalContribution {
 model Notification {
   id      String  @id @default(auto()) @map("_id") @db.ObjectId
   userId  String  @db.ObjectId
-  type    String  // "budget_alert", "goal_milestone", "system", "reminder"
+  type    NotificationType  // "budget_alert", "goal_milestone", "system", "reminder"
   title   String
   message String
   data    Json?   // Additional data as JSON
 
   isRead   Boolean @default(false)
-  priority String  @default("medium") // "low", "medium", "high"
+  priority NotificationPriority  @default(medium) // "low", "medium", "high"
 
   expiresAt DateTime? @default(now())
 

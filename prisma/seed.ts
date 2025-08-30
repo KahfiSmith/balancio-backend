@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, type User, type Category } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -41,43 +41,43 @@ async function main() {
   // Seed expense categories
   console.log('📁 Creating expense categories...');
   for (const category of expenseCategories) {
-    await prisma.category.upsert({
+    const existing = await prisma.category.findFirst({
       where: {
-        name_userId_type: {
-          name: category.name,
-          userId: null,
-          type: 'expense',
-        },
-      },
-      update: {},
-      create: {
-        ...category,
+        name: category.name,
         type: 'expense',
-        isDefault: true,
         userId: null,
       },
     });
+    if (!existing) {
+      await prisma.category.create({
+        data: {
+          ...category,
+          type: 'expense',
+          isDefault: true,
+        },
+      });
+    }
   }
 
   // Seed income categories
   console.log('📁 Creating income categories...');
   for (const category of incomeCategories) {
-    await prisma.category.upsert({
+    const existing = await prisma.category.findFirst({
       where: {
-        name_userId_type: {
-          name: category.name,
-          userId: null,
-          type: 'income',
-        },
-      },
-      update: {},
-      create: {
-        ...category,
+        name: category.name,
         type: 'income',
-        isDefault: true,
         userId: null,
       },
     });
+    if (!existing) {
+      await prisma.category.create({
+        data: {
+          ...category,
+          type: 'income',
+          isDefault: true,
+        },
+      });
+    }
   }
 
   // Create demo admin user
@@ -141,7 +141,7 @@ async function main() {
   ];
 
   console.log('👥 Creating demo users...');
-  const createdUsers = [];
+  const createdUsers: User[] = [];
   
   for (const userData of demoUsers) {
     const user = await prisma.user.upsert({
@@ -186,13 +186,13 @@ async function main() {
   console.log('📊 Creating comprehensive demo data...');
   
   // Get categories for demo data
-  const categories = await prisma.category.findMany();
-  const foodCategory = categories.find(c => c.name === 'Food & Dining' && c.type === 'expense');
-  const transportCategory = categories.find(c => c.name === 'Transportation' && c.type === 'expense');
-  const housingCategory = categories.find(c => c.name === 'Housing' && c.type === 'expense');
-  const entertainmentCategory = categories.find(c => c.name === 'Entertainment' && c.type === 'expense');
-  const salaryCategory = categories.find(c => c.name === 'Salary' && c.type === 'income');
-  const freelanceCategory = categories.find(c => c.name === 'Freelance' && c.type === 'income');
+  const categories: Category[] = await prisma.category.findMany();
+  const foodCategory = categories.find((c) => c.name === 'Food & Dining' && c.type === 'expense');
+  const transportCategory = categories.find((c) => c.name === 'Transportation' && c.type === 'expense');
+  const housingCategory = categories.find((c) => c.name === 'Housing' && c.type === 'expense');
+  const entertainmentCategory = categories.find((c) => c.name === 'Entertainment' && c.type === 'expense');
+  const salaryCategory = categories.find((c) => c.name === 'Salary' && c.type === 'income');
+  const freelanceCategory = categories.find((c) => c.name === 'Freelance' && c.type === 'income');
 
   if (!foodCategory || !salaryCategory) {
     console.error('Required categories not found');
@@ -208,9 +208,10 @@ async function main() {
       description: 'Weekly grocery shopping at supermarket',
       amount: 85.50,
       date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-      paymentMethod: 'card',
+      paymentMethod: 'card' as const,
       location: 'Fresh Market',
       tags: ['grocery', 'weekly'],
+      receipts: [],
     },
     {
       categoryId: foodCategory.id,
@@ -218,9 +219,10 @@ async function main() {
       description: 'Business lunch with client',
       amount: 45.50,
       date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-      paymentMethod: 'card',
+      paymentMethod: 'card' as const,
       location: 'Downtown Cafe',
       tags: ['business', 'lunch'],
+      receipts: [],
     },
     {
       categoryId: transportCategory?.id || foodCategory.id,
@@ -228,9 +230,10 @@ async function main() {
       description: 'Fill up gas tank',
       amount: 60.00,
       date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-      paymentMethod: 'card',
+      paymentMethod: 'card' as const,
       location: 'Shell Station',
       tags: ['gas', 'transportation'],
+      receipts: [],
     },
     {
       categoryId: entertainmentCategory?.id || foodCategory.id,
@@ -238,8 +241,9 @@ async function main() {
       description: 'Monthly Netflix subscription',
       amount: 15.99,
       date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-      paymentMethod: 'card',
+      paymentMethod: 'card' as const,
       tags: ['subscription', 'entertainment'],
+      receipts: [],
     },
     {
       categoryId: housingCategory?.id || foodCategory.id,
@@ -247,8 +251,9 @@ async function main() {
       description: 'Apartment rent payment',
       amount: 1200.00,
       date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-      paymentMethod: 'bank_transfer',
+      paymentMethod: 'bank_transfer' as const,
       tags: ['rent', 'housing'],
+      receipts: [],
     },
   ];
 
@@ -272,12 +277,12 @@ async function main() {
       description: 'Regular monthly salary payment',
       amount: 5000.00,
       date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-      source: 'salary',
+      source: 'salary' as const,
       tags: ['salary', 'monthly'],
       isRecurring: true,
       recurrence: {
         create: {
-          type: 'monthly',
+          type: 'monthly' as const,
           interval: 1,
           nextDate: new Date(new Date().setMonth(new Date().getMonth() + 1)),
         },
@@ -289,7 +294,7 @@ async function main() {
       description: 'Website development project',
       amount: 1500.00,
       date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-      source: 'freelance',
+      source: 'freelance' as const,
       tags: ['freelance', 'web-dev'],
       isRecurring: false,
     },
@@ -320,7 +325,7 @@ async function main() {
       description: 'Budget for dining and groceries',
       amount: 800.00,
       spent: 131.00,
-      period: 'monthly',
+      period: 'monthly' as const,
       startDate: currentMonth,
       endDate: nextMonth,
       alertThreshold: 80,
@@ -331,7 +336,7 @@ async function main() {
       description: 'Monthly transportation expenses',
       amount: 300.00,
       spent: 60.00,
-      period: 'monthly',
+      period: 'monthly' as const,
       startDate: currentMonth,
       endDate: nextMonth,
       alertThreshold: 75,
@@ -342,7 +347,7 @@ async function main() {
       description: 'Monthly entertainment and subscriptions',
       amount: 150.00,
       spent: 15.99,
-      period: 'monthly',
+      period: 'monthly' as const,
       startDate: currentMonth,
       endDate: nextMonth,
       alertThreshold: 90,
@@ -439,7 +444,7 @@ async function main() {
         },
       ],
     },
-  ];
+  ] as const;
 
   for (const goal of goalData) {
     await prisma.goal.create({
@@ -454,10 +459,10 @@ async function main() {
         category: goal.category,
         isActive: true,
         milestones: {
-          create: goal.milestones,
+          create: [...goal.milestones],
         },
         contributions: {
-          create: goal.contributions,
+          create: [...goal.contributions],
         },
       },
     });
@@ -494,14 +499,14 @@ async function main() {
       priority: 'medium',
       isRead: false,
     },
-  ];
+  ] as const;
 
   for (const notification of notificationData) {
     await prisma.notification.create({
       data: {
         ...notification,
-        userId: demoUser.id,
-        data: null,
+        user: { connect: { id: demoUser.id } },
+        // omit optional JSON field instead of forcing null
       },
     });
   }
