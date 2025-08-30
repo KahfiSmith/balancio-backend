@@ -137,12 +137,12 @@ export class UserService {
           },
         });
       } else {
+        const prefUpdate: { currency?: string; timezone?: string } = {};
+        if (preferences.currency !== undefined) prefUpdate.currency = preferences.currency;
+        if (preferences.timezone !== undefined) prefUpdate.timezone = preferences.timezone;
         userPreferences = await tx.userPreferences.update({
           where: { id: userPreferences.id },
-          data: {
-            currency: preferences.currency,
-            timezone: preferences.timezone,
-          },
+          data: prefUpdate,
         });
       }
 

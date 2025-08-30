@@ -1,4 +1,5 @@
 import { prisma } from '@/config/prisma';
+import type { Prisma } from '@prisma/client';
 import { PaginationQuery } from '@/types';
 
 export class PrismaService {
@@ -60,7 +61,7 @@ export class PrismaService {
 
   // Transaction helper
   static async executeTransaction<T>(
-    operations: (prisma: typeof import('@prisma/client').PrismaClient) => Promise<T>
+    operations: (tx: Prisma.TransactionClient) => Promise<T>
   ): Promise<T> {
     return await prisma.$transaction(async (tx) => {
       return await operations(tx);
@@ -70,9 +71,10 @@ export class PrismaService {
   // Health check
   static async healthCheck(): Promise<boolean> {
     try {
-      await prisma.$queryRaw`SELECT 1`;
-      return true;
-    } catch (error) {
+      // For MongoDB, use a ping command via $runCommandRaw
+      const result = await prisma.$runCommandRaw({ ping: 1 } as any);
+      return !!(result && (result as any).ok === 1);
+    } catch (_error) {
       return false;
     }
   }
